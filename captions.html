@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Display and Animation</title>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #display-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            overflow: hidden;
+        }
+
+        .text-line {
+            font-size: 48px;
+            height: 72px; /* Initial height, 1.5 times the font size */
+            margin-bottom: 10px;
+            position: relative;
+            overflow: hidden;
+            transition: height 0.3s ease;
+        }
+
+        .text-content {
+            position: absolute;
+            width: 100%;
+            transition: transform 0.5s ease-out;
+        }
+
+        #input-area {
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        #text-input {
+            flex-grow: 1;
+            padding: 10px;
+            font-size: 18px;
+            background-color: white;
+            color: black;
+            border: none;
+            box-sizing: border-box;
+        }
+
+        .control-button {
+            padding: 10px 15px;
+            font-size: 18px;
+            background-color: #444;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        .fade-out {
+            opacity: 0;
+            transition: opacity 3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div id="display-area">
+        <div id="top-line" class="text-line"><div class="text-content"></div></div>
+        <div id="middle-line" class="text-line"><div class="text-content"></div></div>
+        <div id="bottom-line" class="text-line"><div class="text-content"></div></div>
+    </div>
+    <div id="input-area">
+        <input type="text" id="text-input" placeholder="Enter text here...">
+        <button id="increase-font" class="control-button">A+</button>
+        <button id="decrease-font" class="control-button">A-</button>
+    </div>
+
+    <script>
+        const textInput = document.getElementById('text-input');
+        const bottomLine = document.getElementById('bottom-line').querySelector('.text-content');
+        const middleLine = document.getElementById('middle-line').querySelector('.text-content');
+        const topLine = document.getElementById('top-line').querySelector('.text-content');
+        const increaseFontBtn = document.getElementById('increase-font');
+        const decreaseFontBtn = document.getElementById('decrease-font');
+        let timeout = null;
+        let currentFontSize = 48; // Starting font size in pixels
+
+        textInput.addEventListener('input', function() {
+            clearTimeout(timeout);
+            timeout = setTimeout(processInput, 1000); // Wait for 1 second of inactivity
+        });
+
+        increaseFontBtn.addEventListener('click', () => changeFontSize(1.1));
+        decreaseFontBtn.addEventListener('click', () => changeFontSize(0.9));
+
+        function changeFontSize(factor) {
+            currentFontSize *= factor;
+            currentFontSize = Math.max(24, Math.min(currentFontSize, 96)); // Limit between 24px and 96px
+            const lineHeight = Math.ceil(currentFontSize * 1.5); // Set line height to 1.5 times font size
+            document.querySelectorAll('.text-line').forEach(line => {
+                line.style.fontSize = `${currentFontSize}px`;
+                line.style.height = `${lineHeight}px`;
+            });
+        }
+
+        function processInput() {
+            const currentText = textInput.value.trim();
+            if (currentText !== '') {
+                updateLines(currentText);
+                textInput.value = '';
+            }
+        }
+
+        function removeDuplicateContent(oldText, newText) {
+            let i = 0;
+            while (i < oldText.length && i < newText.length && oldText[i] === newText[i]) {
+                i++;
+            }
+            return oldText.slice(i);
+        }
+
+        function updateLines(newText) {
+            const uniqueBottomContent = removeDuplicateContent(bottomLine.textContent, newText);
+
+            // Animate text movement
+            animateTextTransition(topLine, middleLine.textContent);
+            animateTextTransition(middleLine, uniqueBottomContent);
+            animateTextTransition(bottomLine, newText);
+
+            // Fade out top line after a few seconds
+            setTimeout(() => {
+                topLine.classList.add('fade-out');
+                setTimeout(() => {
+                    topLine.textContent = '';
+                    topLine.classList.remove('fade-out');
+                }, 3000);
+            }, 2000);
+        }
+
+        function animateTextTransition(lineElement, newContent) {
+            const currentTextContent = lineElement.querySelector('.text-content');
+            
+            // Create a new element for the incoming text
+            const incomingText = document.createElement('div');
+            incomingText.className = 'text-content';
+            incomingText.textContent = newContent;
+            incomingText.style.transform = 'translateY(100%)';
+            
+            // Append the new element
+            lineElement.appendChild(incomingText);
+
+            // Trigger reflow
+            void lineElement.offsetWidth;
+
+            // Animate both current and new content
+            if (currentTextContent) {
+                currentTextContent.style.transform = 'translateY(-100%)';
+            }
+            incomingText.style.transform = 'translateY(0)';
+
+            // After animation, clean up
+            setTimeout(() => {
+                if (currentTextContent) {
+                    lineElement.removeChild(currentTextContent);
+                }
+            }, 500); // Match this with the CSS transition time
+        }
+    </script>
+</body>
+</html>
